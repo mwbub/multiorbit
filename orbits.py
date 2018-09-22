@@ -104,5 +104,10 @@ class Orbits:
             None
 
         """
-        list(parallel_map(lambda o: o.integrate(t, pot, method=method, dt=dt),
-                          self.orbits, numcores=numcores))
+        # Must return each Orbit for its values to correctly update
+        def integrate(orbit):
+            orbit.integrate(t, pot, method=method, dt=dt)
+            return orbit
+
+        self.orbits = list(parallel_map(integrate, self.orbits,
+                                        numcores=numcores))
