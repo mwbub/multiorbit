@@ -56,7 +56,7 @@ class Orbits:
         self.orbits = []
         for initial_value in vxvv:
             if isinstance(initial_value, Orbit):
-                self._orbits.append(initial_value)
+                self.orbits.append(initial_value)
             else:
                 orbit = Orbit(vxvv=initial_value, radec=radec, uvw=uvw, lb=lb,
                               ro=ro, vo=vo, zo=zo, solarmotion=solarmotion)
