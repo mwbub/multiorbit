@@ -221,12 +221,12 @@ class Orbits:
             for j in range(len(times)):
                 # Generate new data columns for the current chunk
                 time = times[j]
-                new_nrows = len(chunk.orbits)
+                nrows1 = len(chunk.orbits)
                 if isinstance(time, u.Quantity):
-                    time_col = [time.value]*new_nrows
+                    time_col = [time.value]*nrows1
                 else:
-                    time_col = [time]*new_nrows
-                new_hdu = fits.BinTableHDU.from_columns([
+                    time_col = [time]*nrows1
+                hdu = fits.BinTableHDU.from_columns([
                     fits.Column(name='R', format='D', array=chunk.R(time)),
                     fits.Column(name='phi', format='D', array=chunk.phi(time)),
                     fits.Column(name='z', format='D', array=chunk.z(time)),
@@ -238,11 +238,10 @@ class Orbits:
                 # Append the new data columns to the FITS file
                 file = filename + '_{}.fits'.format(j)
                 with fits.open(file, mode='update') as hdul:
-                    old_nrows = hdul[1].data.shape[0]
-                    nrows = old_nrows + new_nrows
-                    hdu = fits.BinTableHDU.from_columns(
+                    nrows2 = hdul[1].data.shape[0]
+                    nrows = nrows1 + nrows2
+                    hdul[1] = fits.BinTableHDU.from_columns(
                         hdul[1].columns, nrows=nrows)
                     for colname in hdul[1].columns.names:
-                        hdu.data[colname][old_nrows:] = new_hdu.data[colname]
-                    hdul[1] = hdu
+                        hdul[1].data[colname][nrows2:] = hdu.data[colname]
                     hdul.flush()
