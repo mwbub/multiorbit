@@ -36,8 +36,8 @@ class Orbits:
                    Quantities.
                 7) [l, b, d, U, V, W] in [deg,deg,kpc,km/s,km/s,kms]; can be
                    Quantities.
-                8) Unspecified: assumed to be the Sun (equivalent to vxvv=[0, 0,
-                   0, 0, 0, 0] and radec=True).
+                8) None: assumed to be the Sun (equivalent to vxvv=[0, 0, 0, 0,
+                   0, 0] and radec=True).
                 All elements must be of the same form.
             radec (bool; optional): If True, input is 4) or 5) above.
             uvw (bool, optional): If True, velocities are UVW.
@@ -151,8 +151,8 @@ class Orbits:
                    Quantities.
                 7) [l, b, d, U, V, W] in [deg,deg,kpc,km/s,km/s,kms]; can be
                    Quantities.
-                8) Unspecified: assumed to be the Sun (equivalent to vxvv=[0, 0,
-                   0, 0, 0, 0] and radec=True).
+                8) None: assumed to be the Sun (equivalent to vxvv=[0, 0, 0, 0,
+                   0, 0] and radec=True).
                 All elements must be of the same form.
 
         Optional Args:
