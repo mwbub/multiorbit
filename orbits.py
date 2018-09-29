@@ -2,6 +2,8 @@
 Module containing the Orbits class, used to hold multiple orbits and perform
 orbit integration using parallel processing.
 """
+import astropy.units as u
+from astropy.io import fits
 from types import MethodType
 from galpy.orbit import Orbit
 from galpy.util.multi import parallel_map
@@ -111,3 +113,94 @@ class Orbits:
 
         self.orbits = list(parallel_map(integrate, self.orbits,
                                         numcores=numcores))
+
+    def integrate_chunks(self, t, pot, filename, method='symplec4_c', dt=None,
+                         numcores=1, chunk_size=1000000, save_all=False):
+        """Integrate these Orbits in chunks and save the results in a file.
+
+        When using multiprocessing, this method does not update the values of
+        the individual orbit instances, but rather saves the integrated values
+        in a FITS file. Note that the file name will be modified by appending
+        a '_0', '_1', '_2', etc. in order to number each time step.
+
+        Args:
+            t: List of times at which to output, including 0; can be Quantity.
+            pot: Potential instance of list of instances.
+            filename: File in which to save the results of the integration.
+                The file will be saved in the FITS format.
+            method (optional): 'odeint' for scipy's odeint;
+                'leapfrog' for a simple leapfrog implementation;
+                'leapfrog_c' for a simple leapfrog implementation in C;
+                'symplec6_c' for a 6th order symplectic integrator in C;
+                'rk4_c' for a 4th-order Runge-Kutta integrator in C;
+                'rk6_c' for a 6-th order Runge-Kutta integrator in C;
+                'dopr54_c' for a Dormand-Prince integrator in C.
+            dt (optional): If set, force the integrator to use this basic
+                step size; must be an integer divisor of output step size (only
+                works for C integrators that use a fixed step size); can be
+                Quantity.
+            numcores (optional): Number of cores to use for multiprocessing.
+            chunk_size (optional): Number of orbits to integrate per chunk;
+                default = 1000000.
+            save_all (optional): If True, save all time steps. Otherwise, save
+                only the final time step. Default = False
+
+        Returns:
+            None
+
+        """
+        # Remove the .fits file extension if it was provided
+        if filename.lower()[-5:] == '.fits':
+            filename = filename[:-5]
+
+        # Save all time steps or just the last time step
+        times = t if save_all else [t[-1]]
+
+        # Generate empty FITS files for each time step
+        for i in range(len(times)):
+            file = filename + '_{}.fits'.format(i)
+            hdu = fits.BinTableHDU.from_columns([
+                fits.Column(name='R', format='D'),
+                fits.Column(name='phi', format='D'),
+                fits.Column(name='z', format='D'),
+                fits.Column(name='vR', format='D'),
+                fits.Column(name='vT', format='D'),
+                fits.Column(name='vz', format='D'),
+                fits.Column(name='t', format='D')])
+            hdu.writeto(file, overwrite=True)
+
+        # Iterate over chunks of orbits of size chunk_size
+        for i in range(0, len(self.orbits), chunk_size):
+            # Integrate the chunk
+            chunk = Orbits(vxvv=self.orbits[i:i+chunk_size])
+            chunk.integrate(t, pot, method=method, dt=dt, numcores=numcores)
+
+            # Update the file for each time step
+            for j in range(len(times)):
+                # Generate new data columns for the current chunk
+                time = times[j]
+                new_nrows = len(chunk.orbits)
+                if isinstance(time, u.Quantity):
+                    time_col = [time.value]*new_nrows
+                else:
+                    time_col = [time]*new_nrows
+                new_hdu = fits.BinTableHDU.from_columns([
+                    fits.Column(name='R', format='D', array=chunk.R(time)),
+                    fits.Column(name='phi', format='D', array=chunk.phi(time)),
+                    fits.Column(name='z', format='D', array=chunk.z(time)),
+                    fits.Column(name='vR', format='D', array=chunk.vR(time)),
+                    fits.Column(name='vT', format='D', array=chunk.vT(time)),
+                    fits.Column(name='vz', format='D', array=chunk.vz(time)),
+                    fits.Column(name='t', format='D', array=time_col)])
+
+                # Append the new data columns to the FITS file
+                file = filename + '_{}.fits'.format(j)
+                with fits.open(file, mode='update') as hdul:
+                    old_nrows = hdul[1].data.shape[0]
+                    nrows = old_nrows + new_nrows
+                    hdu = fits.BinTableHDU.from_columns(
+                        hdul[1].columns, nrows=nrows)
+                    for colname in hdul[1].columns.names:
+                        hdu.data[colname][old_nrows:] = new_hdu.data[colname]
+                    hdul[1] = hdu
+                    hdul.flush()
