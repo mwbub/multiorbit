@@ -245,3 +245,6 @@ class Orbits:
                     for colname in hdul[1].columns.names:
                         hdul[1].data[colname][nrows2:] = hdu.data[colname]
                     hdul.flush()
+
+                # Delete the hdu's to save memory
+                del hdu, hdul
