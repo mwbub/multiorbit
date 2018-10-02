@@ -119,7 +119,8 @@ class Orbits:
     def integrate_chunks(cls, t, pot, filename, vxvv=None, radec=False,
                          uvw=False, lb=False, ro=None, vo=None, zo=None,
                          solarmotion=None, method='symplec4_c', dt=None,
-                         numcores=1, chunk_size=1000000, save_all=False):
+                         numcores=1, chunk_size=1000000, save_all=False,
+                         start=0):
         """Create and integrate Orbits in a series of chunks.
 
         This method is designed to integrate a large number of orbits in a
@@ -182,6 +183,11 @@ class Orbits:
                 default = 1000000.
             save_all: If True, save all time steps. Otherwise, save only the
                 final time step. Default = False
+            start: Index of vxvv at which to start the integration. If 0, empty
+                FITS files will be created to store the integrated coordinates.
+                Otherwise, it is assumed that the integration is being restarted
+                from a previous run and the necessary files already exist.
+                Default = 0.
 
         Returns:
             None
@@ -198,20 +204,21 @@ class Orbits:
         times = t if save_all else [t[-1]]
 
         # Generate empty FITS files for each time step
-        for i in range(len(times)):
-            file = filename + '_{}.fits'.format(i)
-            hdu = fits.BinTableHDU.from_columns([
-                fits.Column(name='R', format='D'),
-                fits.Column(name='phi', format='D'),
-                fits.Column(name='z', format='D'),
-                fits.Column(name='vR', format='D'),
-                fits.Column(name='vT', format='D'),
-                fits.Column(name='vz', format='D'),
-                fits.Column(name='t', format='D')])
-            hdu.writeto(file, overwrite=True)
+        if not start:
+            for i in range(len(times)):
+                file = filename + '_{}.fits'.format(i)
+                hdu = fits.BinTableHDU.from_columns([
+                    fits.Column(name='R', format='D'),
+                    fits.Column(name='phi', format='D'),
+                    fits.Column(name='z', format='D'),
+                    fits.Column(name='vR', format='D'),
+                    fits.Column(name='vT', format='D'),
+                    fits.Column(name='vz', format='D'),
+                    fits.Column(name='t', format='D')])
+                hdu.writeto(file)
 
         # Iterate over chunks of orbits of size chunk_size
-        for i in range(0, len(vxvv), chunk_size):
+        for i in range(start, len(vxvv), chunk_size):
             # Generate and integrate the Orbits chunk
             chunk = cls(vxvv=vxvv[i:i+chunk_size], radec=radec, uvw=uvw, lb=lb,
                         ro=ro, vo=vo, zo=zo, solarmotion=solarmotion)
