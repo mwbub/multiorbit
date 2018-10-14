@@ -1,7 +1,3 @@
-"""
-Module containing the Orbits class, used to hold multiple orbits and perform
-orbit integration using parallel processing.
-"""
 import astropy.units as u
 from astropy.io import fits
 from galpy.orbit import Orbits
