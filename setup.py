@@ -8,5 +8,5 @@ setup(
     author='Mathew Bub',
     author_email='mathew.bub@gmail.com',
     description='Package for running large orbit integration suites in galpy.',
-    install_requires=['galpy', 'astropy']
+    install_requires=['galpy', 'astropy', 'numpy']
 )

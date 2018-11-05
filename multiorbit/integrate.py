@@ -1,3 +1,4 @@
+import numpy as np
 import astropy.units as u
 from astropy.io import fits
 from galpy.orbit import Orbits
@@ -135,13 +136,14 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
                 time_col = [time.value]*nrows1
             else:
                 time_col = [time]*nrows1
+            R, vR, vT, z, vz, phi = np.array(chunk._orb(time)).T
             hdu = fits.BinTableHDU.from_columns([
-                fits.Column(name='R', format='D', array=chunk.R(time)),
-                fits.Column(name='phi', format='D', array=chunk.phi(time)),
-                fits.Column(name='z', format='D', array=chunk.z(time)),
-                fits.Column(name='vR', format='D', array=chunk.vR(time)),
-                fits.Column(name='vT', format='D', array=chunk.vT(time)),
-                fits.Column(name='vz', format='D', array=chunk.vz(time)),
+                fits.Column(name='R', format='D', array=R),
+                fits.Column(name='phi', format='D', array=phi),
+                fits.Column(name='z', format='D', array=z),
+                fits.Column(name='vR', format='D', array=vR),
+                fits.Column(name='vT', format='D', array=vT),
+                fits.Column(name='vz', format='D', array=vz),
                 fits.Column(name='t', format='D', array=time_col)])
 
             # Append the new data columns to the FITS file
