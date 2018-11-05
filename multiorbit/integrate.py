@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import astropy.units as u
 from astropy.io import fits
@@ -7,7 +8,7 @@ from galpy.orbit import Orbits
 def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
                      lb=False, ro=None, vo=None, zo=None, solarmotion=None,
                      method='symplec4_c', dt=None, numcores=1,
-                     chunk_size=1000000, save_all=False, start=0):
+                     chunk_size=1000000, save_all=False):
     """Create and integrate Orbits in a series of chunks.
 
     This function is designed to integrate a large number of orbits in a series
@@ -85,11 +86,6 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
     save_all
         If True, save all time steps. Otherwise, save only the final time step.
         Default = False
-    start
-        Index of vxvv at which to start the integration. If 0, empty FITS files
-        will be created to store the integrated coordinates. Otherwise, it is
-        assumed that the integration is being restarted from a previous run and
-        the necessary files already exist. Default = 0.
 
     Returns
     -------
@@ -106,8 +102,13 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
     # Save all time steps or just the last time step
     times = t if save_all else [t[-1]]
 
-    # Generate empty FITS files for each time step
-    if not start:
+    # Check for an existing restart file
+    directory = os.path.dirname(filename)
+    if os.path.exists(directory + '/restart.txt'):
+        with open(directory + '/restart.txt', 'r') as f:
+            start = int(f.readline())
+    else:
+        # Generate empty FITS files for each time step
         for i in range(len(times)):
             file = filename + '_{}.fits'.format(i)
             hdu = fits.BinTableHDU.from_columns([
@@ -119,6 +120,12 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
                 fits.Column(name='vz', format='D'),
                 fits.Column(name='t', format='D')])
             hdu.writeto(file)
+
+        # Generate a restart file
+        with open(directory + '/restart.txt', 'w') as f:
+            f.write('0')
+
+        start = 0
 
     # Iterate over chunks of orbits of size chunk_size
     for i in range(start, len(vxvv), chunk_size):
@@ -156,6 +163,10 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
                 for colname in hdul[1].columns.names:
                     hdul[1].data[colname][nrows2:] = hdu.data[colname]
                 hdul.flush()
+
+            # Update the restart file
+            with open(directory + '/restart.txt', 'w') as f:
+                f.write(str(i+chunk_size))
 
             # Delete the hdu's to save memory
             del hdu, hdul
