@@ -140,12 +140,10 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
         for j in range(len(times)):
 
             # Generate new data columns for the current chunk
-            time = times[j]
             nrows = len(vxvv[i:i+chunk_size])
-            if isinstance(time, u.Quantity):
-                time_col = [time.value]*nrows
-            else:
-                time_col = [time]*nrows
+            time = times[j]
+            time_val = time if not isinstance(time, u.Quantity) else time.value
+            time_col = np.full(nrows, time_val)
             R, vR, vT, z, vz, phi = np.array(chunk._orb(time)).T
             hdu = fits.BinTableHDU.from_columns([
                 fits.Column(name='R', format='D', array=R),
