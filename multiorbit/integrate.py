@@ -93,7 +93,7 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
 
     """
     if vxvv is None:
-        vxvv = []
+        vxvv = [None]
 
     # Remove the .fits file extension if it was provided
     if filename.lower()[-5:] == '.fits':
@@ -108,6 +108,8 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
         with open(directory + '/restart.txt', 'r') as f:
             start = int(f.readline())
     else:
+        start = 0
+
         # Generate empty FITS files for each time step
         for i in range(len(times)):
             file = filename + '_{}.fits'.format(i)
@@ -118,17 +120,17 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
                 fits.Column(name='vR', format='D'),
                 fits.Column(name='vT', format='D'),
                 fits.Column(name='vz', format='D'),
-                fits.Column(name='t', format='D')])
+                fits.Column(name='t', format='D')
+            ])
             hdu.writeto(file)
 
         # Generate a restart file
         with open(directory + '/restart.txt', 'w') as f:
             f.write('0')
 
-        start = 0
-
     # Iterate over chunks of orbits of size chunk_size
     for i in range(start, len(vxvv), chunk_size):
+
         # Generate and integrate the Orbits chunk
         chunk = Orbits(vxvv=vxvv[i:i+chunk_size], radec=radec, uvw=uvw, lb=lb,
                        ro=ro, vo=vo, zo=zo, solarmotion=solarmotion)
@@ -136,13 +138,14 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
 
         # Update the file for each time step
         for j in range(len(times)):
+
             # Generate new data columns for the current chunk
             time = times[j]
-            nrows1 = len(vxvv[i:i+chunk_size])
+            nrows = len(vxvv[i:i+chunk_size])
             if isinstance(time, u.Quantity):
-                time_col = [time.value]*nrows1
+                time_col = [time.value]*nrows
             else:
-                time_col = [time]*nrows1
+                time_col = [time]*nrows
             R, vR, vT, z, vz, phi = np.array(chunk._orb(time)).T
             hdu = fits.BinTableHDU.from_columns([
                 fits.Column(name='R', format='D', array=R),
@@ -151,22 +154,22 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
                 fits.Column(name='vR', format='D', array=vR),
                 fits.Column(name='vT', format='D', array=vT),
                 fits.Column(name='vz', format='D', array=vz),
-                fits.Column(name='t', format='D', array=time_col)])
+                fits.Column(name='t', format='D', array=time_col)
+            ])
 
             # Append the new data columns to the FITS file
             file = filename + '_{}.fits'.format(j)
             with fits.open(file, mode='update') as hdul:
-                nrows2 = hdul[1].data.shape[0]
-                nrows = nrows1 + nrows2
                 hdul[1] = fits.BinTableHDU.from_columns(
-                    hdul[1].columns, nrows=nrows)
+                    hdul[1].columns, nrows=i+nrows
+                )
                 for colname in hdul[1].columns.names:
-                    hdul[1].data[colname][nrows2:] = hdu.data[colname]
+                    hdul[1].data[colname][i:] = hdu.data[colname]
                 hdul.flush()
-
-            # Update the restart file
-            with open(directory + '/restart.txt', 'w') as f:
-                f.write(str(i+chunk_size))
 
             # Delete the hdu's to save memory
             del hdu, hdul
+
+        # Update the restart file
+        with open(directory + '/restart.txt', 'w') as f:
+            f.write(str(i+chunk_size))
