@@ -126,7 +126,7 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
 
         # Generate a restart file
         with open(directory + '/restart.txt', 'w') as f:
-            f.write('0')
+            f.write('0\n')
 
     # Iterate over chunks of orbits of size chunk_size
     for i in range(start, len(vxvv), chunk_size):
@@ -170,4 +170,4 @@ def integrate_chunks(t, pot, filename, vxvv=None, radec=False, uvw=False,
 
         # Update the restart file
         with open(directory + '/restart.txt', 'w') as f:
-            f.write(str(i+chunk_size))
+            f.write(str(i+chunk_size) + '\n')
