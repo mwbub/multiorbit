@@ -232,7 +232,7 @@ def integrate_batch(t, pot, initfile, method='symplec4_c', dt=None,
 
     # Load the initial conditions
     init = Table.read(initfile, format='fits')
-    init = init['R', 'vR', 'vT', 'z', 'vz', 'phi'].as_array.view((np.float64, 6))
+    init = init['R', 'vR', 'vT', 'z', 'vz', 'phi'].as_array().view((np.float64, 6))
 
     # Split up the initial conditions into a batch based on the script parameters
     start = len(init) // nbatches * (batch - 1)
