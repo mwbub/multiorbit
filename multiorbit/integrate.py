@@ -2,6 +2,7 @@ import os
 import numpy as np
 import astropy.units as u
 from astropy.io import fits
+from astropy.table import Table
 from galpy.orbit import Orbits
 
 try:
@@ -157,3 +158,66 @@ def integrate_chunks(t, pot, filename, vxvv=None, ro=None, vo=None, zo=None,
         # Update the restart file
         with open(directory + '/restart.txt', 'w') as f:
             f.write(str(i+chunk_size) + '\n')
+
+
+def integrate_batch(t, pot, initfile, method='symplec4_c', dt=None,
+                    numcores=_NUMCORES, force_map=False, chunk_size=1000000,
+                    save_all=False):
+    """Integrate a specified batch of orbits from an initial conditions file.
+
+    This function is designed to read orbit initial conditions from a .fits
+    file, divide the initial conditions into a series of batches, and integrate
+    one of the specified batches. It uses the integrate_chunks method to
+    integrate and save the desired orbits.
+
+    Three command line arguments must be passed to any script which calls this
+    function. These are:
+
+    1) An integer representing the number of the batch to integrate.
+    2) An integer representing the total number of batches into which the
+       initial conditions are divided.
+    3) A string representing the name of the directory where the results of the
+       integration will be saved.
+
+    The results of the integration of the specified batch will then be saved
+    in the indicated directory.
+
+    Parameters
+    ----------
+    t
+        Array of times at which to output, including 0; can be Quantity.
+    pot
+        Potential instance or list of instances.
+    initfile
+        The initial conditions file. The file should be in the .fits format,
+        and should contain columns named 'R', 'vR', 'vT', 'z', 'vz', and 'phi',
+        corresponding to Galactocentric cylindrical coordinates.
+    method
+        'odeint' for scipy's odeint;
+        'leapfrog' for a simple leapfrog implementation;
+        'leapfrog_c' for a simple leapfrog implementation in C;
+        'symplec4_c' for a 4th order symplectic integrator in C;
+        'symplec6_c' for a 6th order symplectic integrator in C;
+        'rk4_c' for a 4th-order Runge-Kutta integrator in C;
+        'rk6_c' for a 6-th order Runge-Kutta integrator in C;
+        'dopr54_c' for a 5-4 Dormand-Prince integrator in C;
+        'dopr853_c' for a 8-5-3 Dormand-Prince integrator in C.
+    dt
+        If set, force the integrator to use this basic step size; must be an
+        integer divisor of output step size (only works for C integrators that
+        use a fixed step size); can be Quantity.
+    numcores
+        Number of cores to use for multiprocessing with force_map.
+    force_map
+        Use Python multiprocessing to integrate the orbits, rather than OpenMP;
+        default = False.
+    chunk_size
+        Number of orbits to integrate per chunk; default = 1000000.
+    save_all
+        If True, save all time steps. Otherwise, save only the final time step;
+        default = False.
+
+    Returns
+    -------
+    None
+    """
