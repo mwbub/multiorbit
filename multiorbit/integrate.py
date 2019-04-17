@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 import astropy.units as u
 from astropy.io import fits
@@ -221,3 +222,38 @@ def integrate_batch(t, pot, initfile, method='symplec4_c', dt=None,
     -------
     None
     """
+    # Grab script parameters
+    batch = int(sys.argv[1])
+    nbatches = int(sys.argv[2])
+    outdir = sys.argv[3]
+
+    if not 1 <= batch <= nbatches:
+        raise ValueError('Batch number must be between 1 and {}'.format(nbatches))
+
+    # Load the initial conditions
+    init = Table.read(initfile, format='fits')
+    init = init['R', 'vR', 'vT', 'z', 'vz', 'phi'].as_array.view((np.float64, 6))
+
+    # Split up the initial conditions into a batch based on the script parameters
+    start = len(init) // nbatches * (batch - 1)
+    stop = len(init) // nbatches * batch
+
+    if batch == 1:
+        init = init[:stop]
+    elif batch == nbatches:
+        init = init[start:]
+    else:
+        init = init[start:stop]
+
+    # Generate the output directory, if it doesn't exist
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+    batchdir = os.path.join(outdir, 'batch{}'.format(batch))
+    if not os.path.exists(batchdir):
+        os.mkdir(batchdir)
+    filename = os.path.join(batchdir, 'batch{}'.format(batch))
+
+    # Perform the integration
+    integrate_chunks(t, pot, filename, vxvv=init, method=method, dt=dt,
+                     numcores=numcores, force_map=force_map,
+                     chunk_size=chunk_size, save_all=save_all)
