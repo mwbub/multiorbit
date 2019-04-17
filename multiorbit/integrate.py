@@ -172,7 +172,7 @@ def integrate_batch(t, pot, initfile, method='symplec4_c', dt=None,
     integrate and save the desired orbits.
 
     Three command line arguments must be passed to any script which calls this
-    function. These are:
+    function. In order, these are:
 
     1) An integer representing the number of the batch to integrate.
     2) An integer representing the total number of batches into which the
