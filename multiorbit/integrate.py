@@ -34,20 +34,9 @@ def integrate_chunks(t, pot, filename, vxvv=None, ro=None, vo=None, zo=None,
         saved in the .fits format. Note that the file name will be modified by
         appending a '_0', '_1', '_2', etc. in order to number each time step.
     vxvv
-        Initial conditions (must all have the same phase-space dimension);
-        can be either:
-            a) list of Orbit instances
-            b) astropy (>v3.0) SkyCoord with arbitrary shape, including
-               velocities (note that this turns *on* physical output even if ro
-               and vo are not given)
-            c) array of arbitrary shape (shape, phasedim) (shape of the orbits,
-               followed by the phase-space dimension of the orbit) or list of
-               initial conditions for individual Orbit instances; elements can
-               be either
-                    1) in Galactocentric cylindrical coordinates with phase-
-                       space coordinates arranged as [R,vR,vT(,z,vz,phi)]; can
-                       be Quantities
-                    2) None: (only works for lists) assumed to be the Sun
+        Array or list of initial conditions in Galactocentric cylindrical
+        coordinates. The array must have shape (N, 6), with elements arranged as
+        [R, vR, vT, z, vz, phi].
     ro
         Distance from vantage point to GC (kpc; can be Quantity).
     vo
@@ -89,6 +78,8 @@ def integrate_chunks(t, pot, filename, vxvv=None, ro=None, vo=None, zo=None,
     """
     if vxvv is None:
         vxvv = [None]
+    elif isinstance(vxvv, np.ndarray):
+        vxvv =
 
     # Remove the .fits file extension if it was provided
     if filename.lower()[-5:] == '.fits':
