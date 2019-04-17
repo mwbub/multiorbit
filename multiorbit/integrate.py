@@ -36,7 +36,8 @@ def integrate_chunks(t, pot, filename, vxvv=None, ro=None, vo=None, zo=None,
     vxvv
         Array or list of initial conditions in Galactocentric cylindrical
         coordinates. The array must have shape (N, 6), with elements arranged as
-        [R, vR, vT, z, vz, phi].
+        [R, vR, vT, z, vz, phi]. Can also be a list of Orbit instances with
+        6 dimensional phase-space coordinates.
     ro
         Distance from vantage point to GC (kpc; can be Quantity).
     vo
@@ -78,8 +79,6 @@ def integrate_chunks(t, pot, filename, vxvv=None, ro=None, vo=None, zo=None,
     """
     if vxvv is None:
         vxvv = [None]
-    elif isinstance(vxvv, np.ndarray):
-        vxvv =
 
     # Remove the .fits file extension if it was provided
     if filename.lower()[-5:] == '.fits':
@@ -118,9 +117,10 @@ def integrate_chunks(t, pot, filename, vxvv=None, ro=None, vo=None, zo=None,
     for i in range(start, len(vxvv), chunk_size):
 
         # Generate and integrate the Orbits chunk
-        chunk = Orbits(vxvv=vxvv[i:i+chunk_size], radec=radec, uvw=uvw, lb=lb,
-                       ro=ro, vo=vo, zo=zo, solarmotion=solarmotion)
-        chunk.integrate(t, pot, method=method, dt=dt, numcores=numcores)
+        chunk = Orbits(vxvv=vxvv[i:i+chunk_size], ro=ro, vo=vo, zo=zo,
+                       solarmotion=solarmotion)
+        chunk.integrate(t, pot, method=method, dt=dt, numcores=numcores,
+                        force_map=force_map)
 
         # Update the file for each time step
         for j in range(len(times)):
@@ -130,7 +130,7 @@ def integrate_chunks(t, pot, filename, vxvv=None, ro=None, vo=None, zo=None,
             time = times[j]
             time_val = time if not isinstance(time, u.Quantity) else time.value
             time_col = np.full(nrows, time_val)
-            R, vR, vT, z, vz, phi = np.array(chunk._orb(time)).T
+            R, vR, vT, z, vz, phi = chunk._call_internal(time)
             hdu = fits.BinTableHDU.from_columns([
                 fits.Column(name='R', format='D', array=R),
                 fits.Column(name='phi', format='D', array=phi),
