@@ -192,7 +192,8 @@ def integrate_batch(t, pot, initfile, method='symplec4_c', dt=None,
     initfile
         The initial conditions file. The file should be in the .fits format,
         and should contain columns named 'R', 'vR', 'vT', 'z', 'vz', and 'phi',
-        corresponding to Galactocentric cylindrical coordinates.
+        corresponding to Galactocentric cylindrical coordinates, in galpy's
+        internal units.
     method
         'odeint' for scipy's odeint;
         'leapfrog' for a simple leapfrog implementation;
